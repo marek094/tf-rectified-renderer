@@ -274,35 +274,3 @@ REGISTER_OP("GatherCorrV2")
 
 
 }  // namespace tensorflow
-
-
-
-// #include "tensorflow/core/framework/function.h"
-// #include "tensorflow/core/lib/core/errors.h"
-
-// namespace tensorflow {
-
-// typedef FunctionDefHelper FDH;
-
-// Status GatherCorrGrad(const AttrSlice& attrs, FunctionDef* g) {
-//   // clang-format off
-//   *g = FDH::Define(
-//       // Arg defs
-//       {"params: Tparams", "indices: Tindices", "doutput: Tparams"},
-//       // Ret val defs
-//       {"dparams: Tparams", "dindices: Tindices"},
-//       // Attr defs
-//       {"Tparams: type", "Tindices: type"},
-//       // Nodes
-//       {
-//         {{"x_shape"}, "Shape", {"params"}, {{"T", "$Tparams"}}},
-//         {{"dparams"}, "ScatterNd", {"indices", "doutput", "x_shape"},
-//          {{"T", "$Tparams"}, {"Tindices", "$Tindices"}}},
-//         {{"dindices"}, "ZerosLike", {"indices"}, {{"T", "$Tindices"}}},
-//       });
-//   // clang-format on
-//   return Status::OK();
-// }
-// REGISTER_OP_GRADIENT("GatherCorr", GatherCorrGrad);
-
-// }  // namespace tensorflow
