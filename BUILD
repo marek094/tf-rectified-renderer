@@ -10,8 +10,8 @@ tf_kernel_library(
 )
 
 tf_custom_op_library(
-    name = "gather_corr.so",
+    name = "gather_ops.so",
     visibility = ["//visibility:public"],
     deps = ["//tensorflow/core/user_ops:gather_corr_functor"],
-    srcs = ["gather_corr_op.cc"],
+    srcs = ["gather_ops.cc", "gather_corr_op.cc"],
 )

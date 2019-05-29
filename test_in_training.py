@@ -22,7 +22,7 @@ def composed(sparams, params, indices):
     loss = tf.square(corr)
     return loss
 
-lib = Path.home() / 'tensorflow/bazel-bin/tensorflow/core/user_ops/gather_corr.so'
+lib = Path.home() / 'tensorflow/bazel-bin/tensorflow/core/user_ops/gather_ops.so'
 assert lib.exists() 
 gather_module = tf.load_op_library(str(lib))
 gather_corr = gather_module.gather_corr
