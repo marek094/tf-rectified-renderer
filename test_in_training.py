@@ -19,11 +19,7 @@ def get_data():
 def composed(sparams, params, indices):
     moved = tf.gather(params, indices)
     print('@%', sparams.shape, params.shape, moved.shape)
-    # corr = tf.reduce_sum(tf.multiply(sparams, moved), axis=1)
-
-    sparams = tf.stop_gradient(sparams) 
     corr = tf.multiply(sparams, moved)
-    # corr = moved + 1
     loss = tf.square(tf.reduce_sum(corr, axis=1))
     return loss
 
@@ -35,12 +31,9 @@ def composed_new(sparams, params, indices):
     gather_corr = gather_module.gather_corr
     import gather_corr_grad 
 
-    sparams = tf.stop_gradient(sparams) 
-    moved = gather_corr(sparams, params, indices)
-    print('@#', sparams.shape, params.shape, moved.shape)
-    # corr = tf.reduce_sum(tf.multiply(sparams, moved), axis=1)
-    corr = moved
-    # corr = tf.multiply(sparams, moved)
+    # sparams = tf.stop_gradient(sparams) 
+    corr = gather_corr(sparams, params, indices)
+    print('@#', sparams.shape, params.shape, corr.shape)
     loss = tf.square(tf.reduce_sum(corr, axis=1))
     return loss
 
@@ -69,7 +62,7 @@ def run_example(lf, rf, hi, func, sess, its=1000):
 
 if __name__ == "__main__":
     res = []
-    for func in [composed, composed, composed_new]:
+    for func in [composed, composed_new, composed]:
         with tf.Session() as sess:
             data = get_data()
             print(sess.run(data[2]))
@@ -77,7 +70,7 @@ if __name__ == "__main__":
             res.append(r)
     
     prec = [[np.abs(x) for x in [a1 - a2, a1 - a3]] for i, (a1, a2, a3) in enumerate(zip(*res))]
-    prec_ok, prec_asked = np.array(prec).sum(axis=2).sum(axis=0)
+    prec_asked, prec_ok = np.array(prec).sum(axis=2).sum(axis=0)
     
     print(prec_ok, prec_asked)
     print("OK" if np.abs(prec_ok-prec_asked) <= 4.0*prec_ok else "FAILED")
