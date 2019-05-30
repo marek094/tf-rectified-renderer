@@ -30,7 +30,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T, typename Index, bool is_axis_zero>
-__global__ void GatherCorrOpKernel(const T* params, const Index* indices, T* out,
+__global__ void GatherCorrOpKernel(const T* s_params, const T* params, const Index* indices, T* out,
                                int64 gather_dim_size, int64 indices_size,
                                int64 slice_size, int64 out_size) {
   CUDA_1D_KERNEL_LOOP(i, out_size) {
@@ -64,7 +64,9 @@ __global__ void GatherCorrOpKernel(const T* params, const Index* indices, T* out
       // out.
       Index params_i =
           (batch_i * gather_dim_size + gather_i) * slice_size + slice_i;
-      out[i] = ldg(params + params_i);
+      Index s_params_i =
+          (batch_i * gather_dim_size + indices_i) * slice_size + slice_i;    
+      out[i] = ldg(params + params_i) * ldg(s_params + s_params_i);
     }
   }
 }
@@ -73,6 +75,7 @@ namespace functor {
 template <typename T, typename Index>
 struct GatherFunctor<GPUDevice, T, Index> {
   int64 operator()(OpKernelContext* ctx,
+                   typename TTypes<T, 3>::ConstTensor s_params,
                    typename TTypes<T, 3>::ConstTensor params,
                    typename TTypes<Index>::ConstFlat indices,
                    typename TTypes<T, 3>::Tensor out) {
@@ -95,14 +98,14 @@ struct GatherFunctor<GPUDevice, T, Index> {
       // clang-format off
       GatherCorrOpKernel<T, Index, true>
           <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
-              params.data(), indices.data(), out.data(), gather_dim_size,
+              s_params.data(), params.data(), indices.data(), out.data(), gather_dim_size,
               indices_size, slice_size, out_size);
       // clang-format on
     } else {
       // clang-format off
       GatherCorrOpKernel<T, Index, false>
           <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
-              params.data(), indices.data(), out.data(), gather_dim_size,
+              s_params.data(), params.data(), indices.data(), out.data(), gather_dim_size,
               indices_size, slice_size, out_size);
       // clang-format on
     }

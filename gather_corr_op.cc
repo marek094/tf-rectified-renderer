@@ -42,8 +42,9 @@ class GatherCorrOp : public OpKernel {
   explicit GatherCorrOp(OpKernelConstruction* c) : OpKernel(c) {}
 
   void Compute(OpKernelContext* c) override {
-    const Tensor& params = c->input(0);
-    const Tensor& indices = c->input(1);
+    const Tensor& s_params = c->input(0);
+    const Tensor& params = c->input(1);
+    const Tensor& indices = c->input(2);
     OP_REQUIRES(
         c, TensorShapeUtils::IsVectorOrHigher(params.shape()),
         errors::InvalidArgument("params must be at least 1 dimensional"));
@@ -51,8 +52,8 @@ class GatherCorrOp : public OpKernel {
     // GatherV2 added an axis argument. For backwards compatibility with Gather,
     // fall back to axis 0 if the op does not have an axis input.
     int64 axis = 0;
-    if (c->num_inputs() == 3) {
-      const Tensor& axis_tensor = c->input(2);
+    if (c->num_inputs() == 4) {
+      const Tensor& axis_tensor = c->input(3);
       OP_REQUIRES(c, TensorShapeUtils::IsScalar(axis_tensor.shape()),
                   errors::InvalidArgument("axis must be scalar"));
 
@@ -104,11 +105,13 @@ class GatherCorrOp : public OpKernel {
     if (N > 0 && outer_size > 0 && inner_size > 0) {
       auto params_flat =
           params.shaped<T, 3>({outer_size, gather_dim_size, inner_size});
+      auto s_params_flat =
+          s_params.shaped<T, 3>({outer_size, gather_dim_size, inner_size});    
       auto indices_flat = indices.flat<Index>();
       auto out_flat = out->shaped<T, 3>({outer_size, N, inner_size});
  
       functor::GatherFunctor<Device, T, Index> functor;
-      int64 bad_i = functor(c, params_flat, indices_flat, out_flat);
+      int64 bad_i = functor(c, s_params_flat, params_flat, indices_flat, out_flat);
 
       OP_REQUIRES(
           c, bad_i < 0, 
@@ -124,13 +127,7 @@ class GatherCorrOp : public OpKernel {
                               .Device(DEVICE_##dev)                    \
                               .TypeConstraint<type>("Tparams")         \
                               .TypeConstraint<index_type>("Tindices"), \
-                          GatherCorrOp<dev##Device, type, index_type>);    \
-  REGISTER_KERNEL_BUILDER(Name("GatherCorrV2")                         \
-                              .Device(DEVICE_##dev)                    \
-                              .TypeConstraint<type>("Tparams")         \
-                              .TypeConstraint<index_type>("Tindices")  \
-                              .HostMemory("axis"),                     \
-                          GatherCorrOp<dev##Device, type, index_type>)
+                          GatherCorrOp<dev##Device, type, index_type>);  
 
 #define REGISTER_GATHER_ALL_INDICES(dev, type) \
   REGISTER_GATHER_FULL(dev, type, int32);      \
@@ -153,12 +150,12 @@ TF_CALL_uint64(REGISTER_GATHER_CPU);
 // Registration of the GPU implementations.
 #define REGISTER_GATHER_GPU(type) REGISTER_GATHER_ALL_INDICES(GPU, type)
 
-TF_CALL_bool(REGISTER_GATHER_GPU);
+// TF_CALL_bool(REGISTER_GATHER_GPU);
 TF_CALL_int32(REGISTER_GATHER_GPU);
 TF_CALL_int64(REGISTER_GATHER_GPU);
 TF_CALL_GPU_NUMBER_TYPES(REGISTER_GATHER_GPU);
-TF_CALL_complex64(REGISTER_GATHER_GPU);
-TF_CALL_complex128(REGISTER_GATHER_GPU);
+// TF_CALL_complex64(REGISTER_GATHER_GPU);
+// TF_CALL_complex128(REGISTER_GATHER_GPU);
 
 #undef REGISTER_GATHER_GPU
 

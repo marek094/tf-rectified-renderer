@@ -15,6 +15,7 @@ using shape_inference::ShapeHandle;
 using shape_inference::UnchangedShape;
 
 REGISTER_OP("GatherCorr")
+    .Input("s_params: Tparams")
     .Input("params: Tparams")
     .Input("indices: Tindices")
     .Attr("validate_indices: bool = true")
@@ -26,7 +27,11 @@ REGISTER_OP("GatherCorr")
       TF_RETURN_IF_ERROR(c->WithRankAtLeast(c->input(0), 1, &unused));
       ShapeHandle params_subshape;
       TF_RETURN_IF_ERROR(c->Subshape(c->input(0), 1, &params_subshape));
-      ShapeHandle indices_shape = c->input(1);
+      ShapeHandle unused2;
+      TF_RETURN_IF_ERROR(c->WithRankAtLeast(c->input(1), 1, &unused2));
+      ShapeHandle params_subshape2;
+      TF_RETURN_IF_ERROR(c->Subshape(c->input(1), 1, &params_subshape2));
+      ShapeHandle indices_shape = c->input(2);
       ShapeHandle out;
       TF_RETURN_IF_ERROR(c->Concatenate(indices_shape, params_subshape, &out));
       c->set_output(0, out);

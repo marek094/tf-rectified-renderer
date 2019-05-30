@@ -18,38 +18,53 @@ def get_data():
 
 def composed(sparams, params, indices):
     moved = tf.gather(params, indices)
-    corr = tf.reduce_sum(tf.multiply(sparams, moved), axis=1)
-    loss = tf.square(corr)
+    print('@%', sparams.shape, params.shape, moved.shape)
+    # corr = tf.reduce_sum(tf.multiply(sparams, moved), axis=1)
+
+    sparams = tf.stop_gradient(sparams) 
+    corr = tf.multiply(sparams, moved)
+    # corr = moved + 1
+    loss = tf.square(tf.reduce_sum(corr, axis=1))
     return loss
 
-lib = Path.home() / 'tensorflow/bazel-bin/tensorflow/core/user_ops/gather_ops.so'
-assert lib.exists() 
-gather_module = tf.load_op_library(str(lib))
-gather_corr = gather_module.gather_corr
-from gather_corr_grad import *
 
 def composed_new(sparams, params, indices):
-    moved = gather_corr(params, indices)
-    corr = tf.reduce_sum(tf.multiply(sparams, moved), axis=1)
-    loss = tf.square(corr)
+    lib = Path.home() / 'tensorflow/bazel-bin/tensorflow/core/user_ops/gather_ops.so'
+    assert lib.exists() 
+    gather_module = tf.load_op_library(str(lib))
+    gather_corr = gather_module.gather_corr
+    import gather_corr_grad 
+
+    sparams = tf.stop_gradient(sparams) 
+    moved = gather_corr(sparams, params, indices)
+    print('@#', sparams.shape, params.shape, moved.shape)
+    # corr = tf.reduce_sum(tf.multiply(sparams, moved), axis=1)
+    corr = moved
+    # corr = tf.multiply(sparams, moved)
+    loss = tf.square(tf.reduce_sum(corr, axis=1))
     return loss
 
-def run_example(lf, rf, hi, func, sess, its=100):
+def run_example(lf, rf, hi, func, sess, its=1000):
     np.random.seed(SEED)
     tf.set_random_seed(SEED)
     init = tf.initializers.random_normal(seed=SEED)
     dlf1 = tf.layers.dense(lf, 100, kernel_initializer=init)
     drf1 = tf.layers.dense(rf, 100, kernel_initializer=init)    
-    dlf1 = tf.layers.dense(dlf1, 100, kernel_initializer=init)
-    drf1 = tf.layers.dense(drf1, 100, kernel_initializer=init)
+    # dlf1 = tf.layers.dense(dlf1, 100, kernel_initializer=init)
+    # drf1 = tf.layers.dense(drf1, 100, kernel_initializer=init)
     dhi1 = hi
     loss1 = func(dlf1, drf1, dhi1)
-    opt1 = tf.train.AdamOptimizer(0.0001).minimize(loss1)
+    opt1 = tf.train.AdamOptimizer(0.001).minimize(loss1)
     sess.run(tf.global_variables_initializer())
     losses = []
     for i in range(its):
-        d = sess.run({'opt1':opt1, 'loss1':loss1})
+        if i == 0:
+            d = sess.run({'loss1':loss1})    
+            print(d['loss1'])
+        else:        
+            d = sess.run({'opt1':opt1, 'loss1':loss1})
         losses.append(d['loss1'])
+
     return losses
 
 if __name__ == "__main__":
@@ -57,6 +72,7 @@ if __name__ == "__main__":
     for func in [composed, composed, composed_new]:
         with tf.Session() as sess:
             data = get_data()
+            print(sess.run(data[2]))
             r = run_example(*data, func, sess)
             res.append(r)
     
@@ -64,4 +80,4 @@ if __name__ == "__main__":
     prec_ok, prec_asked = np.array(prec).sum(axis=2).sum(axis=0)
     
     print(prec_ok, prec_asked)
-    print("OK" if np.abs(prec_ok-prec_asked) <= 4.0*prec_ok  else "FAILED")
+    print("OK" if np.abs(prec_ok-prec_asked) <= 4.0*prec_ok else "FAILED")

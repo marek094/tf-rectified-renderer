@@ -28,7 +28,8 @@ namespace functor {
 #define DECLARE_GPU_SPECS_INDEX(T, Index)                               \
   template <>                                                           \
   int64 GatherFunctor<GPUDevice, T, Index>::operator()(                 \
-      OpKernelContext* ctx, typename TTypes<T, 3>::ConstTensor Tparams, \
+      OpKernelContext* ctx, typename TTypes<T, 3>::ConstTensor Ts_params, \
+      typename TTypes<T, 3>::ConstTensor Tparams,                       \
       typename TTypes<Index>::ConstFlat Tindices,                       \
       typename TTypes<T, 3>::Tensor Tout);                              \
   extern template struct GatherFunctor<GPUDevice, T, Index>;
@@ -39,8 +40,8 @@ namespace functor {
 
 TF_CALL_int64(DECLARE_GPU_SPECS);
 TF_CALL_GPU_NUMBER_TYPES(DECLARE_GPU_SPECS);
-TF_CALL_complex64(DECLARE_GPU_SPECS);
-TF_CALL_complex128(DECLARE_GPU_SPECS);
+// TF_CALL_complex64(DECLARE_GPU_SPECS);
+// TF_CALL_complex128(DECLARE_GPU_SPECS);
 
 #undef DECLARE_GPU_SPECS
 #undef DECLARE_GPU_SPECS_INDEX
