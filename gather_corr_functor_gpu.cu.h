@@ -25,9 +25,6 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/cuda_kernel_helper.h"
 
-// #include <iostream>
-#define PNT(x) ; // std::cout << "!@\t" << #x << "\t" << x << std::endl
-
 namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
@@ -94,13 +91,6 @@ struct GatherFunctor<GPUDevice, T, Index> {
     const int64 indices_size = indices.size();
     const int64 slice_size = params.dimension(2);
 
-
-    PNT(is_axis_zero);
-    PNT(gather_dim_size);
-    PNT(indices_size);
-    PNT(slice_size);
-    PNT(out_size);
-
     CudaLaunchConfig config = GetCudaLaunchConfig(out_size, d);
     if (is_axis_zero) {
       // clang-format off
@@ -126,8 +116,6 @@ struct GatherFunctor<GPUDevice, T, Index> {
 
 }  // namespace functor
 }  // namespace tensorflow
-
-#undef PNT
 
 #endif  // GOOGLE_CUDA
 

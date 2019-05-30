@@ -38,7 +38,7 @@ def composed_new(sparams, params, indices):
     loss = tf.square(corr)
     return loss
 
-def run_example(lf, rf, hi, func, sess, its=10000):
+def run_example(lf, rf, hi, func, sess, its=1000):
     np.random.seed(SEED)
     tf.set_random_seed(SEED)
     init = tf.initializers.random_normal(seed=SEED)
@@ -49,7 +49,7 @@ def run_example(lf, rf, hi, func, sess, its=10000):
     dhi1 = hi
     print("d", drf1.shape, hi.shape)
     loss1 = func(dlf1, drf1, dhi1)
-    opt1 = tf.train.AdamOptimizer(0.001).minimize(loss1)
+    opt1 = tf.train.AdamOptimizer(0.0001).minimize(loss1)
     sess.run(tf.global_variables_initializer())
     losses = []
     for i in range(its):

@@ -23,10 +23,7 @@ def _GatherCorrGrad(op, grad):
   with ops.colocate_with(params):
     params_shape = array_ops.shape(params, out_type=ops.dtypes.int64)
     params_shape = math_ops.to_int32(params_shape)
-  
 
-  print('grad', grad.shape)
-  # Build appropriately shaped IndexedSlices
   s_params = op.inputs[0]
   indices = op.inputs[2]
 
@@ -35,10 +32,12 @@ def _GatherCorrGrad(op, grad):
   values = array_ops.reshape(grad, values_shape)
   indices = array_ops.reshape(indices, size)
 
-  moved_params = array_ops.gather(params, indices)
+  # Both multiplications work due to broadcasting support of tf.multiply:
+  # https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html
+  moved_params = array_ops.gather(params, indices) 
   s_params_grad = math_ops.multiply(moved_params, values)
 
-  nonmoved_grads = math_ops.multiply(s_params, values)
+  nonmoved_grads = math_ops.multiply(s_params, values) 
   params_grad = ops.IndexedSlices(nonmoved_grads, indices, params_shape) 
 
   return [s_params_grad, params_grad, None]
