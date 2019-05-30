@@ -25,6 +25,9 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/cuda_kernel_helper.h"
 
+// #include <iostream>
+#define PNT(x) ; // std::cout << "!@\t" << #x << "\t" << x << std::endl
+
 namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
@@ -33,40 +36,38 @@ template <typename T, typename Index, bool is_axis_zero>
 __global__ void GatherCorrOpKernel(const T* s_params, const T* params, const Index* indices, T* out,
                                int64 gather_dim_size, int64 indices_size,
                                int64 slice_size, int64 out_size) {
-  CUDA_1D_KERNEL_LOOP(i, out_size) {
+  for(int i : CudaGridRangeX(out_size)) {
     Index batch_i = 0;
     Index indices_i = 0;
-    Index slice_i = 0;
     if (is_axis_zero) {
-      indices_i = i / slice_size;
-      slice_i = i - indices_i * slice_size;
+      indices_i = i;
     } else {
-      Index batch_indices_i = i / slice_size;
+      Index batch_indices_i = i;
       // The batch index into params to use for i.
       batch_i = batch_indices_i / indices_size;
       // The index into indices to use for i.
       indices_i = batch_indices_i - batch_i * indices_size;
       // Index into the current slice in params to use for i.
-      slice_i = i - batch_indices_i * slice_size;
     }
 
     // Index into the gather axis to use for i.
     Index gather_i = ldg(indices + indices_i);
 
+    out[i] = T(0);
     // Check gather_i is in [0, gather_dim_size).
-    if (!FastBoundsCheck(gather_i, gather_dim_size)) {
-      // Set indices out of range to zero
-      // TODO(fpmc): Log an error for transfer back to host.
-      out[i] = T(0);
-    } else {
+    // Set indices out of range to zero
+    // TODO(fpmc): Log an error for transfer back to host.
+    if (FastBoundsCheck(gather_i, gather_dim_size)) {
       // params is a [batch_size, gather_dim_size, slice_size] tensor. Read
       // params[batch_i, gather_i, slice_i] and write it to the i'th position in
       // out.
       Index params_i =
-          (batch_i * gather_dim_size + gather_i) * slice_size + slice_i;
+          (batch_i * gather_dim_size + gather_i) * slice_size;
       Index s_params_i =
-          (batch_i * gather_dim_size + indices_i) * slice_size + slice_i;    
-      out[i] = ldg(params + params_i) * ldg(s_params + s_params_i);
+          (batch_i * gather_dim_size + indices_i) * slice_size;
+      for (int j = 0; j < slice_size; j++) {
+        out[i] += ldg(params + (params_i + j)) * ldg(s_params + (s_params_i + j));
+      }
     }
   }
 }
@@ -78,7 +79,7 @@ struct GatherFunctor<GPUDevice, T, Index> {
                    typename TTypes<T, 3>::ConstTensor s_params,
                    typename TTypes<T, 3>::ConstTensor params,
                    typename TTypes<Index>::ConstFlat indices,
-                   typename TTypes<T, 3>::Tensor out) {
+                   typename TTypes<T, 2>::Tensor out) {
     const GPUDevice& d = ctx->eigen_gpu_device();
     const int64 out_size = out.size();
     if (out_size == 0) {
@@ -92,6 +93,13 @@ struct GatherFunctor<GPUDevice, T, Index> {
     const int64 gather_dim_size = params.dimension(1);
     const int64 indices_size = indices.size();
     const int64 slice_size = params.dimension(2);
+
+
+    PNT(is_axis_zero);
+    PNT(gather_dim_size);
+    PNT(indices_size);
+    PNT(slice_size);
+    PNT(out_size);
 
     CudaLaunchConfig config = GetCudaLaunchConfig(out_size, d);
     if (is_axis_zero) {
@@ -118,6 +126,8 @@ struct GatherFunctor<GPUDevice, T, Index> {
 
 }  // namespace functor
 }  // namespace tensorflow
+
+#undef PNT
 
 #endif  // GOOGLE_CUDA
 

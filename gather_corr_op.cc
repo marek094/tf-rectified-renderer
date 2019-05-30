@@ -26,6 +26,9 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/util.h"
 
+// #include <iostream>
+#define PNT(x) ;//std::cout << "!@\t" << #x << "\t" << x << std::endl
+
 namespace tensorflow {
 
 typedef Eigen::ThreadPoolDevice CPUDevice;
@@ -90,28 +93,45 @@ class GatherCorrOp : public OpKernel {
     TensorShape result_shape;
     int64 outer_size = 1;
     int64 inner_size = 1;
+    PNT(axis);
     for (int i = 0; i < axis; i++) {
       result_shape.AddDim(params.dim_size(i));
+      // std::cerr << "!*outer*" << params.dim_size(i) << std::endl;
       outer_size *= params.dim_size(i);
     }
+    PNT(indices.shape());
     result_shape.AppendShape(indices.shape());
     for (int i = axis + 1; i < params.dims(); i++) {
-      result_shape.AddDim(params.dim_size(i));
+      // result_shape.AddDim(params.dim_size(i));
+      // std::cerr << "!+inner+" << params.dim_size(i) << std::endl;
       inner_size *= params.dim_size(i);
     } 
 
+    PNT(result_shape);
+
     Tensor* out = nullptr;
     OP_REQUIRES_OK(c, c->allocate_output(0, result_shape, &out));
+    PNT("Here");
+    PNT(outer_size);
+    PNT(N);
+    PNT(inner_size);
+    PNT(gather_dim_size);
     if (N > 0 && outer_size > 0 && inner_size > 0) {
       auto params_flat =
           params.shaped<T, 3>({outer_size, gather_dim_size, inner_size});
       auto s_params_flat =
           s_params.shaped<T, 3>({outer_size, gather_dim_size, inner_size});    
       auto indices_flat = indices.flat<Index>();
-      auto out_flat = out->shaped<T, 3>({outer_size, N, inner_size});
+      PNT(";)");
+      auto out_flat = out->shaped<T, 2>({outer_size, N});
  
+      PNT(out_flat.size());
+      // std::cerr << "!> gather_corr_op.cc" << std::endl;
       functor::GatherFunctor<Device, T, Index> functor;
       int64 bad_i = functor(c, s_params_flat, params_flat, indices_flat, out_flat);
+
+
+
 
       OP_REQUIRES(
           c, bad_i < 0, 
@@ -166,3 +186,5 @@ TF_CALL_GPU_NUMBER_TYPES(REGISTER_GATHER_GPU);
 
 
 }  // namespace tensorflow
+
+#undef PNT

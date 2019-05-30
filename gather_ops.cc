@@ -32,9 +32,9 @@ REGISTER_OP("GatherCorr")
       ShapeHandle params_subshape2;
       TF_RETURN_IF_ERROR(c->Subshape(c->input(1), 1, &params_subshape2));
       ShapeHandle indices_shape = c->input(2);
-      ShapeHandle out;
-      TF_RETURN_IF_ERROR(c->Concatenate(indices_shape, params_subshape, &out));
-      c->set_output(0, out);
+      // ShapeHandle out;
+      // TF_RETURN_IF_ERROR(c->Concatenate(indices_shape, params_subshape, &out));
+      c->set_output(0, indices_shape);
       return Status::OK();
     });
 }  // namespace tensorflow

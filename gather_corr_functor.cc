@@ -31,7 +31,7 @@ namespace functor {
       OpKernelContext* ctx, typename TTypes<T, 3>::ConstTensor Ts_params, \
       typename TTypes<T, 3>::ConstTensor Tparams,                       \
       typename TTypes<Index>::ConstFlat Tindices,                       \
-      typename TTypes<T, 3>::Tensor Tout);                              \
+      typename TTypes<T, 2>::Tensor Tout);                              \
   extern template struct GatherFunctor<GPUDevice, T, Index>;
 
 #define DECLARE_GPU_SPECS(T)         \

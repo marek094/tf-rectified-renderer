@@ -24,13 +24,21 @@ def _GatherCorrGrad(op, grad):
     params_shape = array_ops.shape(params, out_type=ops.dtypes.int64)
     params_shape = math_ops.to_int32(params_shape)
   
+
+  print('grad', grad.shape)
   # Build appropriately shaped IndexedSlices
   s_params = op.inputs[0]
   indices = op.inputs[2]
+
   size = array_ops.expand_dims(array_ops.size(indices), 0)
-  values_shape = array_ops.concat([size, params_shape[1:]], 0)
+  values_shape = array_ops.concat([size, [1]], 0)
   values = array_ops.reshape(grad, values_shape)
   indices = array_ops.reshape(indices, size)
-  params_grad = ops.IndexedSlices(math_ops.multiply(s_params, values), indices, params_shape)
-  s_params_grad = math_ops.multiply( array_ops.gather(params, indices), values )
+
+  moved_params = array_ops.gather(params, indices)
+  s_params_grad = math_ops.multiply(moved_params, values)
+
+  nonmoved_grads = math_ops.multiply(s_params, values)
+  params_grad = ops.IndexedSlices(nonmoved_grads, indices, params_shape) 
+
   return [s_params_grad, params_grad, None]
