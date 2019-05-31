@@ -34,7 +34,7 @@ def composed_new(sparams, params, indices):
 
     # params = tf.stop_gradient(params) 
     corr = gather_corr(sparams, params, indices)
-    print('@#', sparams.shape, params.shape, corr.shape)
+    print('@#', sparams.shape, indices.shape, params.shape, corr.shape)
     loss = tf.square(corr)
     return loss
 
