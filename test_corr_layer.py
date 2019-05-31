@@ -24,16 +24,16 @@ if __name__ == "__main__":
     for impl_name in impl_names:
         with tf.Session() as sess:
             s = 0
-            shape = [2, 512, 1920]
-            channels = [8]
+            shape = [2, 256, 1920]
+            channels = [32]
             left = gen_inputs(shape + channels, seed=s+0)
             right = gen_inputs(shape + channels, seed=s+1)
             indices = gen_indices(shape + [1], seed=s+2)
 
-            corr = correlation_layer(left, indices, right, delta=4, impl=impl_name)
+            corr = correlation_layer(left, indices, right, delta=2, impl=impl_name)
 
             start = timer()
             r = sess.run(corr)
-            print(r[0, 5, 5:10, 5], r.shape)
+            print(r[0, 5, 5:10, -1], r.shape)
             print(f"{impl_name.upper()} elapsed: {timer()-start:.5}s")
 

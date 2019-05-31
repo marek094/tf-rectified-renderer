@@ -50,7 +50,7 @@ __global__ void GatherCorrOpKernel(const T* s_params, const T* params, const Ind
     // Index into the gather axis to use for i.
     Index gather_i = ldg(indices + indices_i);
 
-    out[i] = T(0);
+    T sum = T(0);
     // Check gather_i is in [0, gather_dim_size).
     // Set indices out of range to zero
     // TODO(fpmc): Log an error for transfer back to host.
@@ -62,10 +62,12 @@ __global__ void GatherCorrOpKernel(const T* s_params, const T* params, const Ind
           (batch_i * gather_dim_size + gather_i) * slice_size;
       Index s_params_i =
           (batch_i * gather_dim_size + indices_i) * slice_size;
+          
       for (int j = 0; j < slice_size; j++) {
-        out[i] += ldg(params + (params_i + j)) * ldg(s_params + (s_params_i + j));
+        sum += ldg(params + (params_i + j)) * ldg(s_params + (s_params_i + j));
       }
     }
+    out[i] = sum;
   }
 }
 
