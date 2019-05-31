@@ -18,10 +18,16 @@ def gen_indices(shape, seed=None):
 
 if __name__ == "__main__":
     from timeit import default_timer as timer
+    
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('impl', default=None)
+    args = parser.parse_args()
 
-    impl_names = ['trivial', 'original', 'original_op', 'our_fused']
-    impl_names = reversed(impl_names)
-    for impl_name in impl_names:
+
+    impl_names = ['trivial', 'original', 'our_fused', 'original_op']
+    # impl_names = reversed(impl_names)
+    for impl_name in [args.impl] if args.impl else impl_names:
         with tf.Session() as sess:
             s = 0
             shape = [2, 256, 1920]
@@ -30,10 +36,10 @@ if __name__ == "__main__":
             right = gen_inputs(shape + channels, seed=s+1)
             indices = gen_indices(shape + [1], seed=s+2)
 
-            corr = correlation_layer(left, indices, right, delta=2, impl=impl_name)
+            corr = correlation_layer(left, indices, right, delta=4, impl=impl_name)
 
             start = timer()
             r = sess.run(corr)
-            print(r[0, 5, 5:10, -1], r.shape)
-            print(f"{impl_name.upper()} elapsed: {timer()-start:.5}s")
+            # print(r[0, 5, 5:10, -1], r.shape)
+            print(f"{impl_name.upper()}\t{timer()-start:.5}")
 
