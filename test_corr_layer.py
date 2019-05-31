@@ -19,7 +19,7 @@ def gen_indices(shape, seed=None):
 if __name__ == "__main__":
     from timeit import default_timer as timer
 
-    impl_names = ['trivial', 'original', 'our_fused']
+    impl_names = ['trivial', 'original', 'original_op', 'our_fused']
     impl_names = reversed(impl_names)
     for impl_name in impl_names:
         with tf.Session() as sess:
