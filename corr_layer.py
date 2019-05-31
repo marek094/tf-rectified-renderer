@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 from pathlib import Path
-from warp import dense_image_warp as linear_gather_corr
 
 def correlation_layer(inputs, indices, indexed_inputs, delta, impl='original', name=None):
     """correlation layer"""
@@ -59,6 +58,7 @@ def _impl_gather_nd(inputs, indices, indexed_inputs, delta, name):
 
 
 def _impl_our_fused(inputs, indices, indexed_inputs, delta, name):
+    from warp import dense_image_warp as linear_gather_corr
     deltas = np.arange(-delta+1, delta).astype(np.float32)
     nbs = [linear_gather_corr(inputs, indices + shift, indexed_inputs) for shift in deltas]
     correlation_layer = tf.stack(nbs, axis=3)
