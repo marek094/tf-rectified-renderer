@@ -1,4 +1,4 @@
 # tf-rectified-renderer
-Experimental implementations on (bi)linear samplers; Small playground.
+Experimental implementations of (bi)linear samplers; Small playground.
 
-To be placed in `tensorflow/tensorflow/core/user_ops` source code.
+To be placed in the `tensorflow/tensorflow/core/` folder of TensorFlow source
