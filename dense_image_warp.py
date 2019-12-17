@@ -90,7 +90,8 @@ def _interpolate_linear(grid, query_points, name='interpolate_linear'):
 
     # alpha has the same type as the grid, as we will directly use alpha
     # when taking linear combinations of pixel values from the image.
-    alpha = math_ops.cast(queries - floor, grid_type)
+
+    alpha = math_ops.cast(queries - math_ops.cast(int_floor, grid_type), grid_type)
     min_alpha = constant_op.constant(0.0, dtype=grid_type)
     max_alpha = constant_op.constant(1.0, dtype=grid_type)
     alpha = math_ops.minimum(math_ops.maximum(min_alpha, alpha), max_alpha)

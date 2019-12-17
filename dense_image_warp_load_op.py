@@ -27,17 +27,16 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import math_ops
 
-
 import tensorflow as tf
 from pathlib import Path
-lib = Path.home() / 'tensorflow/bazel-bin/tensorflow/core/user_ops/gather_ops.so'
+lib = Path.home() / 'tensorflow/bazel-bin/tensorflow/core/user_ops/gather_extern.so'
 assert lib.exists()
 gather_module = tf.load_op_library(str(lib))
-gather_corr = gather_module.gather_corr
+# print(gather_module.OP_LIST)
+gather_extern = gather_module.gather_extern
 import sys; sys.path.append('/home/marek/tensorflow/tensorflow/core/user_ops/')
-from gather_corr_grad import *
 
-def _interpolate_linear(s_grid, query_points, grid, name='interpolate_linear'):
+def _interpolate_linear(grid, query_points, name='interpolate_linear'):
   """Similar to Matlab's interp2 function.
 
   Finds values for query points on a grid using bilinear interpolation.
@@ -108,8 +107,8 @@ def _interpolate_linear(s_grid, query_points, grid, name='interpolate_linear'):
     # (since the alpha values don't depend on the channel).
     alpha = array_ops.expand_dims(alpha, 3)
 
-    flat_shape = [batch_size * height * width, channels]
-    flattened_grid = array_ops.reshape(grid, flat_shape)
+    flattened_grid = array_ops.reshape(
+        grid, [batch_size * height * width, channels])
     batch_offsets = array_ops.reshape(
         math_ops.range(batch_size) * height * width, [batch_size, 1, 1])
     height_offsets = array_ops.reshape(
@@ -121,24 +120,19 @@ def _interpolate_linear(s_grid, query_points, grid, name='interpolate_linear'):
     # code would be made simpler by using array_ops.gather_nd.
     def gather(x_coords):
         linear_coordinates = batch_offsets + height_offsets + x_coords
-        flattened_coordinates = tf.reshape(linear_coordinates, flat_shape[:1])
-        flattened_gathered_values = gather_corr(s_grid, flattened_grid, flattened_coordinates)
-        gathered_values = tf.reshape(flattened_gathered_values, queries.shape)
-        # print('@', s_grid.shape, flattened_grid.shape, linear_coordinates.shape, flattened_gathered_values.shape, gathered_values.shape)
+        gathered_values = gather_extern(flattened_grid, linear_coordinates)
         return gathered_values
 
     # grab the pixel values in the 4 corners around each query point
     left = gather(int_floor)
     right = gather(int_floor+1)
 
-    alpha = array_ops.reshape(alpha, left.shape)
-
     interp = alpha * (right - left) + left
 
     return interp
 
 
-def dense_image_warp(image, disp, disp_image, name='warp'):
+def dense_image_warp(image, disp, name='dense_image_warp'):
   """Image warping using per-pixel flow vectors.
 
   Apply a non-linear warp to the image, where the warp is specified by a dense
@@ -170,15 +164,15 @@ def dense_image_warp(image, disp, disp_image, name='warp'):
     ValueError: if height < 2 or width < 2 or the inputs have the wrong number
                 of dimensions.
   """
-  # with ops.name_scope(name):
-  batch_size, height, width, channels = (array_ops.shape(image)[0],
-                                          array_ops.shape(image)[1],
-                                          array_ops.shape(image)[2],
-                                          array_ops.shape(image)[3])
+  with ops.name_scope(name):
+    batch_size, height, width, channels = (array_ops.shape(image)[0],
+                                           array_ops.shape(image)[1],
+                                           array_ops.shape(image)[2],
+                                           array_ops.shape(image)[3])
 
-  
-  query_points_on_grid =  disp + array_ops.reshape(math_ops.cast(math_ops.range(width), disp.dtype), [width, 1])
-  query_points_flattened = array_ops.reshape(query_points_on_grid, [batch_size, height,  width])
-  interpolated = _interpolate_linear(image, query_points_flattened, disp_image)
+    
+    query_points_on_grid =  disp + array_ops.reshape(math_ops.cast(math_ops.range(width), disp.dtype), [width, 1])
+    query_points_flattened = array_ops.reshape(query_points_on_grid, [batch_size, height,  width])
+    interpolated = _interpolate_linear(image, query_points_flattened)
 
-  return interpolated
+    return interpolated

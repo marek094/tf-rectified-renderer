@@ -27,6 +27,8 @@ def _GatherCorrGrad(op, grad):
   s_params = op.inputs[0]
   indices = op.inputs[2]
 
+  # print('-'*50, [op.inputs[i].shape for i in range(3)])
+
   size = array_ops.expand_dims(array_ops.size(indices), 0)
   values_shape = array_ops.concat([size, [1]], 0)
   values = array_ops.reshape(grad, values_shape)
@@ -38,6 +40,6 @@ def _GatherCorrGrad(op, grad):
   s_params_grad = math_ops.multiply(moved_params, values)
 
   nonmoved_grads = math_ops.multiply(s_params, values) 
-  params_grad = ops.IndexedSlices(nonmoved_grads, indices, params_shape) 
+  params_grad = ops.IndexedSlices(nonmoved_grads, indices, params_shape)
 
   return [s_params_grad, params_grad, None]
